@@ -14,7 +14,7 @@ struct physicsCategory{
     static let Ground : UInt32 = 0x1 << 2
     static let Rock : UInt32 = 0x1 << 3
     static let Score : UInt32 = 0x1 << 4
-    //static let Star : UInt32 = 0x1 << 5
+    static let Star : UInt32 = 0x1 << 5
     
 }
 
@@ -26,20 +26,31 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     var animal = SKSpriteNode()
     var rockPair = SKNode()
     var moveAndRemove = SKAction()
-    var moveAndRemoveScore = SKAction()
+    var moveAndRemoveStar = SKAction()
     
+    var highScore = Int()
     var score = Int()
     let scoreLabel = SKLabelNode()
     
-    var star = Int()
-    let starLabel = SKLabelNode()
     
-    var starNode = SKSpriteNode()
+    var star = Int()
+    let starCountLabel = SKLabelNode()
+    var starCountNode = SKSpriteNode()
     
     var restartButton = SKSpriteNode()
     
     var gameStarted = Bool()
     var died = Bool()
+    
+    var title = SKLabelNode()
+    
+    let tapToStart = SKLabelNode()
+    
+    var tapTick = SKSpriteNode()
+    
+    var bestScore = Int()
+    let bestScoreLabel = SKLabelNode()
+    var bestScoreNode = SKSpriteNode()
     
     func startGame(){
         self.physicsWorld.contactDelegate = self
@@ -49,6 +60,44 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         } else {
             star = 0
         }
+        
+        if(defaults.value(forKey: "best") != nil) {
+            bestScore = defaults.value(forKey: "best") as! Int
+        } else {
+            bestScore = 0
+        }
+        
+        title = SKLabelNode()
+        title.text = "Flappy Animal"
+        title.fontName = "04b19"
+        title.zPosition = 40
+        title.fontSize = 100
+        title.fontColor = .red
+        title.position = CGPoint(x: self.frame.width/2, y: 2 * self.frame.height/3)
+        title.zRotation = CGFloat(M_PI/8)
+        self.addChild(title)
+        
+        tapToStart.text = "Tap to start"
+        tapToStart.fontName = "04b19"
+        tapToStart.zPosition = 40
+        tapToStart.fontSize = 50
+        tapToStart.fontColor = .darkGray
+        tapToStart.position = CGPoint(x: self.frame.width/2, y: self.frame.height/3)
+        self.addChild(tapToStart)
+        
+        tapTick = SKSpriteNode(imageNamed: "tapTick")
+        tapTick.setScale(2)
+        tapTick.position = CGPoint(x: self.frame.width/2, y: self.frame.height/4)
+        tapTick.zPosition = 40
+
+        
+        let bigger = SKAction.scale(to: 2.5, duration: 0.75)
+        let smaller = SKAction.scale(to: 1.5, duration: 0.75)
+        let tickAnimSequence = SKAction.sequence([bigger, smaller])
+        let tickAnim = SKAction.repeatForever(tickAnimSequence)
+        
+        tapTick.run(tickAnim)
+        self.addChild(tapTick)
         
         let background = SKSpriteNode(imageNamed: "background")
         background.position = CGPoint(x: self.frame.width/2, y: self.frame.height/2)
@@ -81,27 +130,34 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         animal.physicsBody?.isDynamic = true
         self.addChild(animal)
         
-        scoreLabel.position = CGPoint(x: self.frame.width / 2, y: self.frame.height / 2 + self.frame.height / 2.5)
-        scoreLabel.text = "\(score)"
-        scoreLabel.fontName = "04b19"
-        scoreLabel.zPosition = 5
-        scoreLabel.fontSize = 100
-        scoreLabel.fontColor = .black
-        self.addChild(scoreLabel)
+        starCountNode = SKSpriteNode(imageNamed: "starGold")
+        starCountNode.position = CGPoint(x: self.frame.width/20, y: self.frame.height / 2 + self.frame.height / 2.25 + starCountNode.size.height / 2)
+        starCountNode.zPosition = CGFloat(5)
+        self.addChild(starCountNode)
         
-        starLabel.position = CGPoint(x: self.frame.width / 10, y: self.frame.height / 2 + self.frame.height / 2.25)
-        starLabel.text = "\(star)"
-        starLabel.fontName = "04b19"
-        starLabel.zPosition = 5
-        starLabel.fontSize = 50
-        starLabel.fontColor = .black
-        self.addChild(starLabel)
+        starCountLabel.position = CGPoint(x: starCountNode.position.x + starCountNode.size.width/2 + 10, y: self.frame.height / 2 + self.frame.height / 2.25)
+        starCountLabel.text = "\(star)"
+        starCountLabel.horizontalAlignmentMode = .left
+        starCountLabel.fontName = "04b19"
+        starCountLabel.zPosition = 5
+        starCountLabel.fontSize = 50
+        starCountLabel.fontColor = .black
+        self.addChild(starCountLabel)
         
-        starNode = SKSpriteNode(imageNamed: "starGold")
-        starNode.position = CGPoint(x: self.frame.width / 20, y: self.frame.height / 2 + self.frame.height / 2.25 + starNode.size.height / 2)
-        starNode.zPosition = CGFloat(5)
-        self.addChild(starNode)
+        bestScoreNode = SKSpriteNode(imageNamed: "bestScore")
+        bestScoreNode.size = starCountNode.size
+        bestScoreNode.position = CGPoint(x: self.frame.width/20, y: self.frame.height / 2 + self.frame.height / 2.5 + bestScoreNode.size.height / 2)
+        bestScoreNode.zPosition = CGFloat(5)
+        self.addChild(bestScoreNode)
         
+        bestScoreLabel.position = CGPoint(x: bestScoreNode.position.x + bestScoreNode.size.width/2 + 10, y: self.frame.height / 2 + self.frame.height / 2.5)
+        bestScoreLabel.text = "\(bestScore)"
+        bestScoreLabel.horizontalAlignmentMode = .left
+        bestScoreLabel.fontName = "04b19"
+        bestScoreLabel.zPosition = 5
+        bestScoreLabel.fontSize = 50
+        bestScoreLabel.fontColor = .black
+        self.addChild(bestScoreLabel)
     }
     
     func restartGame(){
@@ -127,6 +183,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         let topRock = SKSpriteNode(imageNamed: "rockGrass")
         let bottomRock = SKSpriteNode(imageNamed: "rockGrass")
+        let scoreNode = SKSpriteNode()
         
         topRock.position = CGPoint(x: self.frame.width + 216, y: self.frame.height/2 + 600)
         topRock.setScale(4)
@@ -136,7 +193,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         topRock.physicsBody = SKPhysicsBody(texture: texture, alphaThreshold: 0.1, size: topRock.size)
         topRock.physicsBody?.categoryBitMask = physicsCategory.Rock
         topRock.physicsBody?.collisionBitMask = physicsCategory.Animal
-        topRock.physicsBody?.contactTestBitMask = physicsCategory.Animal | physicsCategory.Score
+        topRock.physicsBody?.contactTestBitMask = physicsCategory.Animal | physicsCategory.Star
         topRock.physicsBody?.affectedByGravity = false
         topRock.physicsBody?.isDynamic = false
         
@@ -146,9 +203,20 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         bottomRock.physicsBody = SKPhysicsBody(texture: texture, alphaThreshold: 0.1, size: bottomRock.size)
         bottomRock.physicsBody?.categoryBitMask = physicsCategory.Rock
         bottomRock.physicsBody?.collisionBitMask = physicsCategory.Animal
-        bottomRock.physicsBody?.contactTestBitMask = physicsCategory.Animal | physicsCategory.Score
+        bottomRock.physicsBody?.contactTestBitMask = physicsCategory.Animal | physicsCategory.Star
         bottomRock.physicsBody?.affectedByGravity = false
         bottomRock.physicsBody?.isDynamic = false
+        
+        scoreNode.size = CGSize(width: 1, height: self.frame.height*2)
+        scoreNode.position = CGPoint(x: self.frame.width + 216, y: self.frame.height/2)
+        scoreNode.zPosition = CGFloat(3.9)
+        scoreNode.physicsBody = SKPhysicsBody(rectangleOf: scoreNode.size)
+        scoreNode.physicsBody?.affectedByGravity = false
+        scoreNode.physicsBody?.isDynamic = false
+        scoreNode.physicsBody?.categoryBitMask = physicsCategory.Score
+        scoreNode.physicsBody?.collisionBitMask = 0
+        scoreNode.physicsBody?.contactTestBitMask = physicsCategory.Animal
+        rockPair.addChild(scoreNode)
         
         let randomHeight = CGFloat(Int(arc4random_uniform(UInt32(400)))) //400 is about less than 0.5 of rock heigth with this scale
         let pairHeightRandom = Int(arc4random_uniform(2))
@@ -178,9 +246,21 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        if(gameStarted == false){
+        if(gameStarted == false && animal.position.x < self.frame.height - 100){
             
             gameStarted = true
+            
+            self.tapToStart.removeFromParent()
+            self.tapTick.removeFromParent()
+            self.title.removeFromParent()
+            
+            scoreLabel.position = CGPoint(x: self.frame.width / 2, y: self.frame.height / 2 + self.frame.height / 2.5)
+            scoreLabel.text = "\(score)"
+            scoreLabel.fontName = "04b19"
+            scoreLabel.zPosition = 5
+            scoreLabel.fontSize = 100
+            scoreLabel.fontColor = .black
+            self.addChild(scoreLabel)
             
             animal.physicsBody?.affectedByGravity = true
             
@@ -189,16 +269,16 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 self.createRocks()
             }
             
-            let spawnScore = SKAction.run {
+            let spawnStar = SKAction.run {
                 () in
-                self.createScore()
+                self.createStar()
             }
             
-            let delayScore = SKAction.wait(forDuration: 1.5)
+            let delayStar = SKAction.wait(forDuration: 1.5)
 
-            let spawnDelayScore = SKAction.sequence([spawnScore, delayScore])
+            let spawnDelayStar = SKAction.sequence([spawnStar, delayStar])
             
-            let spawnDelayScoreForever = SKAction.repeatForever(spawnDelayScore)
+            let spawnDelayStarForever = SKAction.repeatForever(spawnDelayStar)
             
             //self.run(spawnDelayScoreForever)
             
@@ -230,21 +310,21 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             
             let testDelaySequenceForever = SKAction.repeatForever(testDelaySequence)
             
-            let allAction = SKAction.group([spawnDelayScoreForever, spawnDelayForever, testDelaySequenceForever])
+            let allAction = SKAction.group([spawnDelayStarForever, spawnDelayForever, testDelaySequenceForever])
             self.run(allAction)
             
             let distance = CGFloat(self.frame.width + 864) //864 = 2*rock width with this scale
-            let moveRocks = SKAction.moveBy(x: -distance, y: 0, duration: TimeInterval((distance - CGFloat(5*score)) * 0.01))
+            let moveRocks = SKAction.moveBy(x: -distance, y: 0, duration: TimeInterval(distance * 0.01))
             let removeRocks = SKAction.removeFromParent()
             moveAndRemove = SKAction.sequence([moveRocks, removeRocks])
 
-            let moveScore = SKAction.moveBy(x: -distance, y: 0, duration: TimeInterval((distance - CGFloat(5*score)) * 0.01))
-            let removeScore = SKAction.removeFromParent()
-            moveAndRemoveScore = SKAction.sequence([moveScore, removeScore])
+            let moveStar = SKAction.moveBy(x: -distance, y: 0, duration: TimeInterval(distance * 0.01))
+            let removeStar = SKAction.removeFromParent()
+            moveAndRemoveStar = SKAction.sequence([moveStar, removeStar])
             
         animal.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
         animal.physicsBody?.applyImpulse(CGVector(dx: 0, dy: animal.size.height*1.25))
-        } else if(died == false){
+        } else if(died == false && animal.position.x < self.frame.height - 100){
             animal.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
             animal.physicsBody?.applyImpulse(CGVector(dx: 0, dy: animal.size.height*1.25))
         }
@@ -270,14 +350,26 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         if firstBody.categoryBitMask == physicsCategory.Score && secondBody.categoryBitMask == physicsCategory.Animal {
             firstBody.categoryBitMask = 0
             firstBody.node?.removeFromParent()
-            star += 1
-            starLabel.text = "\(star)"
-            
+            score += 1
+            scoreLabel.text = "\(score)"
+
         } else if firstBody.categoryBitMask == physicsCategory.Animal && secondBody.categoryBitMask == physicsCategory.Score {
             secondBody.categoryBitMask = 0
             secondBody.node?.removeFromParent()
+            score += 1
+            scoreLabel.text = "\(score)"
+
+        } else if firstBody.categoryBitMask == physicsCategory.Star && secondBody.categoryBitMask == physicsCategory.Animal {
+            firstBody.categoryBitMask = 0
+            firstBody.node?.removeFromParent()
             star += 1
-            starLabel.text = "\(star)"
+            starCountLabel.text = "\(star)"
+            
+        } else if firstBody.categoryBitMask == physicsCategory.Animal && secondBody.categoryBitMask == physicsCategory.Star {
+            secondBody.categoryBitMask = 0
+            secondBody.node?.removeFromParent()
+            star += 1
+            starCountLabel.text = "\(star)"
             
         } else if firstBody.categoryBitMask == physicsCategory.Animal && secondBody.categoryBitMask == physicsCategory.Rock || firstBody.categoryBitMask == physicsCategory.Rock && secondBody.categoryBitMask == physicsCategory.Animal {
             
@@ -322,9 +414,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
     }
     
-    func createScore() {
-        let scoreNode = SKSpriteNode(imageNamed: "starGold")
-        scoreNode.name = "score"
+    func createStar() {
+        let starNode = SKSpriteNode(imageNamed: "starGold")
+        starNode.name = "score"
         
         let random = Int(arc4random_uniform(2))
         var offset = 0
@@ -337,21 +429,26 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             break
         }
         
-        scoreNode.size = CGSize(width: 50, height: 50)
-        scoreNode.position = CGPoint(x: self.frame.width + 216, y: self.frame.height / 2 + CGFloat(offset))
-        scoreNode.zPosition = CGFloat(4)
+        starNode.size = CGSize(width: 50, height: 50)
+        starNode.position = CGPoint(x: self.frame.width + 216, y: self.frame.height / 2 + CGFloat(offset))
+        starNode.zPosition = CGFloat(4)
         let texture = SKTexture(imageNamed: "starGold")
-        scoreNode.physicsBody = SKPhysicsBody(texture: texture, alphaThreshold: 0.1, size: scoreNode.size)
-        scoreNode.physicsBody?.affectedByGravity = false
-        scoreNode.physicsBody?.isDynamic = false
-        scoreNode.physicsBody?.categoryBitMask = physicsCategory.Score
-        scoreNode.physicsBody?.collisionBitMask = 0
-        scoreNode.physicsBody?.contactTestBitMask = physicsCategory.Animal | physicsCategory.Rock
-        self.addChild(scoreNode)
-        scoreNode.run(self.moveAndRemoveScore)
+        starNode.physicsBody = SKPhysicsBody(texture: texture, alphaThreshold: 0.1, size: starNode.size)
+        starNode.physicsBody?.affectedByGravity = false
+        starNode.physicsBody?.isDynamic = false
+        starNode.physicsBody?.categoryBitMask = physicsCategory.Star
+        starNode.physicsBody?.collisionBitMask = 0
+        starNode.physicsBody?.contactTestBitMask = physicsCategory.Animal | physicsCategory.Rock
+        self.addChild(starNode)
+        starNode.run(self.moveAndRemoveStar)
     }
     
     func createRestartButton() {
+        defaults.set(star, forKey: "star")
+        if (score > bestScore) {
+            defaults.set(score, forKey: "best")
+        } else {
+        }
         defaults.set(star, forKey: "star")
         restartButton = SKSpriteNode(imageNamed: "restartButton")
         restartButton.setScale(0)
