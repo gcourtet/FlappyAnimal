@@ -38,6 +38,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     var starCountNode = SKSpriteNode()
     
     var restartButton = SKSpriteNode()
+    var restartBackGround = SKSpriteNode()
     
     var gameStarted = Bool()
     var died = Bool()
@@ -51,6 +52,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     var bestScore = Int()
     let bestScoreLabel = SKLabelNode()
     var bestScoreNode = SKSpriteNode()
+    
+    var pauseButtonNode = SKSpriteNode()
     
     func startGame(){
         self.physicsWorld.contactDelegate = self
@@ -246,101 +249,144 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        if(gameStarted == false && animal.position.x < self.frame.height - 100){
-            
-            gameStarted = true
-            
-            self.tapToStart.removeFromParent()
-            self.tapTick.removeFromParent()
-            self.title.removeFromParent()
-            
-            scoreLabel.position = CGPoint(x: self.frame.width / 2, y: self.frame.height / 2 + self.frame.height / 2.5)
-            scoreLabel.text = "\(score)"
-            scoreLabel.fontName = "04b19"
-            scoreLabel.zPosition = 5
-            scoreLabel.fontSize = 100
-            scoreLabel.fontColor = .black
-            self.addChild(scoreLabel)
-            
-            animal.physicsBody?.affectedByGravity = true
-            
-            let spawn = SKAction.run {
-                () in
-                self.createRocks()
-            }
-            
-            let spawnStar = SKAction.run {
-                () in
-                self.createStar()
-            }
-            
-            let delayStar = SKAction.wait(forDuration: 1.5)
-
-            let spawnDelayStar = SKAction.sequence([spawnStar, delayStar])
-            
-            let spawnDelayStarForever = SKAction.repeatForever(spawnDelayStar)
-            
-            //self.run(spawnDelayScoreForever)
-            
-            let delay = SKAction.wait(forDuration: 3.5)
-            
-            let spawnDelay = SKAction.sequence([spawn, delay])
-            
-            let spawnDelayForever = SKAction.repeatForever(spawnDelay)
-            
-            //self.run(spawnDelayForever)
-            let testContactAction = SKAction.run {
-                self.enumerateChildNodes(withName: "rockPair", using: ({
-                    (rock, err) in
-                    for i in rock.children {
-                        self.enumerateChildNodes(withName: "score", using: ({
-                            (node, error) in
-                            
-                            if(i.intersects(node)) {
-                                node.removeFromParent()
-                            }
-                        }))
-                    }
-                }))
-            }
-            
-            let testDelay = SKAction.wait(forDuration: 0.1)
-            
-            let testDelaySequence = SKAction.sequence([testContactAction, testDelay])
-            
-            let testDelaySequenceForever = SKAction.repeatForever(testDelaySequence)
-            
-            let allAction = SKAction.group([spawnDelayStarForever, spawnDelayForever, testDelaySequenceForever])
-            self.run(allAction)
-            
-            let distance = CGFloat(self.frame.width + 864) //864 = 2*rock width with this scale
-            let moveRocks = SKAction.moveBy(x: -distance, y: 0, duration: TimeInterval(distance * 0.01))
-            let removeRocks = SKAction.removeFromParent()
-            moveAndRemove = SKAction.sequence([moveRocks, removeRocks])
-
-            let moveStar = SKAction.moveBy(x: -distance, y: 0, duration: TimeInterval(distance * 0.01))
-            let removeStar = SKAction.removeFromParent()
-            moveAndRemoveStar = SKAction.sequence([moveStar, removeStar])
-            
-        animal.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
-        animal.physicsBody?.applyImpulse(CGVector(dx: 0, dy: animal.size.height*1.25))
-        } else if(died == false && animal.position.x < self.frame.height - 100){
-            animal.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
-            animal.physicsBody?.applyImpulse(CGVector(dx: 0, dy: animal.size.height*1.25))
-        }
         
         for touch in touches{
             let location = touch.location(in: self)
             
-            if died == true{
-                if restartButton.contains(location){
-                    restartGame()
-                    
+            if(gameStarted == false){
+                
+                gameStarted = true
+                
+                self.tapToStart.removeFromParent()
+                self.tapTick.removeFromParent()
+                self.title.removeFromParent()
+                
+                scoreLabel.position = CGPoint(x: self.frame.width / 2, y: self.frame.height / 2 + self.frame.height / 2.5)
+                scoreLabel.text = "\(score)"
+                scoreLabel.fontName = "04b19"
+                scoreLabel.zPosition = 5
+                scoreLabel.fontSize = 100
+                scoreLabel.fontColor = .black
+                self.addChild(scoreLabel)
+                
+                pauseButtonNode = SKSpriteNode(imageNamed: "pauseButton")
+                pauseButtonNode.setScale(0.5)
+                pauseButtonNode.position = CGPoint(x: pauseButtonNode.size.width/2 + 10, y: pauseButtonNode.size.height/2 + 5)
+                pauseButtonNode.zPosition = 10
+                self.addChild(pauseButtonNode)
+                
+                animal.physicsBody?.affectedByGravity = true
+                
+                let spawn = SKAction.run {
+                    () in
+                    self.createRocks()
                 }
                 
+                let spawnStar = SKAction.run {
+                    () in
+                    self.createStar()
+                }
                 
+                let delayStar = SKAction.wait(forDuration: 1.5)
+                
+                let spawnDelayStar = SKAction.sequence([spawnStar, delayStar])
+                
+                let spawnDelayStarForever = SKAction.repeatForever(spawnDelayStar)
+                
+                //self.run(spawnDelayScoreForever)
+                
+                let delay = SKAction.wait(forDuration: 3.5)
+                
+                let spawnDelay = SKAction.sequence([spawn, delay])
+                
+                let spawnDelayForever = SKAction.repeatForever(spawnDelay)
+                
+                //self.run(spawnDelayForever)
+                let testContactAction = SKAction.run {
+                    self.enumerateChildNodes(withName: "rockPair", using: ({
+                        (rock, err) in
+                        for i in rock.children {
+                            self.enumerateChildNodes(withName: "score", using: ({
+                                (node, error) in
+                                
+                                if(i.intersects(node)) {
+                                    node.removeFromParent()
+                                }
+                            }))
+                        }
+                    }))
+                }
+                
+                let testDelay = SKAction.wait(forDuration: 0.1)
+                
+                let testDelaySequence = SKAction.sequence([testContactAction, testDelay])
+                
+                let testDelaySequenceForever = SKAction.repeatForever(testDelaySequence)
+                
+                let allAction = SKAction.group([spawnDelayStarForever, spawnDelayForever, testDelaySequenceForever])
+                self.run(allAction)
+                
+                let distance = CGFloat(self.frame.width + 864) //864 = 2*rock width with this scale
+                let moveRocks = SKAction.moveBy(x: -distance, y: 0, duration: TimeInterval(distance * 0.01))
+                let removeRocks = SKAction.removeFromParent()
+                moveAndRemove = SKAction.sequence([moveRocks, removeRocks])
+                
+                let moveStar = SKAction.moveBy(x: -distance, y: 0, duration: TimeInterval(distance * 0.01))
+                let removeStar = SKAction.removeFromParent()
+                moveAndRemoveStar = SKAction.sequence([moveStar, removeStar])
+                
+                animal.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
+                animal.physicsBody?.applyImpulse(CGVector(dx: 0, dy: animal.size.height*1.25))
+            } else if(!pauseButtonNode.contains(location) && died == false && gameStarted == true && animal.position.y < self.frame.height){
+                animal.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
+                animal.physicsBody?.applyImpulse(CGVector(dx: 0, dy: animal.size.height*1.25))
+            } else if (died == true) {
+                if restartButton.contains(location){
+                    restartGame()
+                }
+            } else if(pauseButtonNode.contains(location) && /*scene?.physicsWorld.speed == 0*/ self.isPaused == true) {
+//
+//                var counter = 3
+//                let timerLabel = SKLabelNode()
+//                timerLabel.position = CGPoint(x: self.frame.width/2, y: self.frame.height/2)
+//                timerLabel.fontName = "04b19"
+//                timerLabel.text = "\(counter)"
+//                timerLabel.zPosition = 50
+//                timerLabel.fontSize = 150
+//                timerLabel.color = .red
+//                self.addChild(timerLabel)
+//                print("yp")
+//                let waitAction = SKAction.wait(forDuration: 1.0)
+//                let timerAction = SKAction.run({
+//                    if counter > 0 {
+//                        timerLabel.text = "\(counter)"
+//                        counter -= 1
+//                    } else {
+//                        self.removeAction(forKey: "timerForever")
+//                    }
+//                })
+//                let timer = SKAction.sequence([waitAction, timerAction])
+//                let timerForever = SKAction.repeatForever(timer)
+//                self.run(timerForever, withKey: "timerForever")
+//                timerLabel.removeFromParent()
+                self.isPaused = false
+                //scene?.physicsWorld.speed = 1
+                pauseButtonNode.removeFromParent()
+                pauseButtonNode = SKSpriteNode(imageNamed: "pauseButton")
+                pauseButtonNode.setScale(0.5)
+                pauseButtonNode.position = CGPoint(x: pauseButtonNode.size.width/2 + 10, y: pauseButtonNode.size.height/2 + 5)
+                pauseButtonNode.zPosition = 10
+                self.addChild(pauseButtonNode)
+            } else if(pauseButtonNode.contains(location)) {
+                self.isPaused = true
+                //scene?.physicsWorld.speed = 0
+                pauseButtonNode.removeFromParent()
+                pauseButtonNode = SKSpriteNode(imageNamed: "playButton")
+                pauseButtonNode.setScale(0.5)
+                pauseButtonNode.position = CGPoint(x: pauseButtonNode.size.width/2 + 10, y: pauseButtonNode.size.height/2 + 5)
+                pauseButtonNode.zPosition = 10
+                self.addChild(pauseButtonNode)
             }
-            
         }
     }
     
@@ -352,18 +398,34 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             firstBody.node?.removeFromParent()
             score += 1
             scoreLabel.text = "\(score)"
+            /* let distance = CGFloat(self.frame.width + 864) //864 = 2*rock width with this scale
+            let moveRocks = SKAction.moveBy(x: -distance, y: 0, duration: TimeInterval((distance - CGFloat(score * 50)) * 0.01))
+            let removeRocks = SKAction.removeFromParent()
+            moveAndRemove = SKAction.sequence([moveRocks, removeRocks])
+            
+            let moveStar = SKAction.moveBy(x: -distance, y: 0, duration: TimeInterval((distance - CGFloat(score * 50)) * 0.01))
+            let removeStar = SKAction.removeFromParent()
+            moveAndRemoveStar = SKAction.sequence([moveStar, removeStar]) */
 
         } else if firstBody.categoryBitMask == physicsCategory.Animal && secondBody.categoryBitMask == physicsCategory.Score {
             secondBody.categoryBitMask = 0
             secondBody.node?.removeFromParent()
             score += 1
             scoreLabel.text = "\(score)"
+            if(score > bestScore) {
+                bestScore = score
+                bestScoreLabel.text = "\(bestScore)"
+            }
 
         } else if firstBody.categoryBitMask == physicsCategory.Star && secondBody.categoryBitMask == physicsCategory.Animal {
             firstBody.categoryBitMask = 0
             firstBody.node?.removeFromParent()
             star += 1
             starCountLabel.text = "\(star)"
+            if(score > bestScore) {
+                bestScore = score
+                bestScoreLabel.text = "\(bestScore)"
+            }
             
         } else if firstBody.categoryBitMask == physicsCategory.Animal && secondBody.categoryBitMask == physicsCategory.Star {
             secondBody.categoryBitMask = 0
@@ -389,7 +451,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             }))
             if died == false{
                 died = true
-                createRestartButton()
+                pauseButtonNode.removeFromParent()
+                createRestartScreen()
             }
         } else if firstBody.categoryBitMask == physicsCategory.Animal && secondBody.categoryBitMask == physicsCategory.Ground || firstBody.categoryBitMask == physicsCategory.Ground && secondBody.categoryBitMask == physicsCategory.Animal {
             
@@ -409,10 +472,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             }))
             if died == false{
                 died = true
-                createRestartButton()
+                pauseButtonNode.removeFromParent()
+                createRestartScreen()
             }
         }
-    }
+        }
     
     func createStar() {
         let starNode = SKSpriteNode(imageNamed: "starGold")
@@ -443,19 +507,41 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         starNode.run(self.moveAndRemoveStar)
     }
     
-    func createRestartButton() {
+    func createRestartScreen() {
         defaults.set(star, forKey: "star")
-        if (score > bestScore) {
-            defaults.set(score, forKey: "best")
-        } else {
-        }
-        defaults.set(star, forKey: "star")
+        defaults.set(bestScore, forKey: "best")
+        restartBackGround = SKSpriteNode(imageNamed: "restartPane")
+        restartBackGround.setScale(0)
+        restartBackGround.position = CGPoint(x: self.frame.width / 2, y: self.frame.height / 2)
+        restartBackGround.zPosition = 25
+        
+        let gameOver = SKLabelNode()
+        gameOver.text = "Game over"
+        gameOver.fontName = "04b19"
+        gameOver.zPosition = 35
+        gameOver.fontSize = 60
+        gameOver.fontColor = .black
+        gameOver.position = CGPoint(x: self.frame.width/2, y: self.frame.height*3/5)
+        
+        let scoreRestart = SKLabelNode()
+        scoreRestart.text = "Score : \(score)"
+        scoreRestart.fontName = "04b19"
+        scoreRestart.zPosition = 35
+        scoreRestart.fontSize = 50
+        scoreRestart.fontColor = .black
+        scoreRestart.position = CGPoint(x: self.frame.width/2, y: self.frame.height/2)
+        
         restartButton = SKSpriteNode(imageNamed: "restartButton")
-        restartButton.setScale(0)
-        restartButton.position = CGPoint(x: self.frame.width / 2, y: self.frame.height / 2)
-        restartButton.zPosition = 6
-        self.addChild(restartButton)
-        restartButton.run(SKAction.scale(to: 0.8, duration: 0.3))
+        restartButton.setScale(0.8)
+        restartButton.position = CGPoint(x: self.frame.width / 2, y: self.frame.height / 2.5)
+        restartButton.zPosition = 30
+        self.addChild(restartBackGround)
+        restartBackGround.run(SKAction.scale(to: 2, duration: 0.3), completion:
+            { () -> () in
+                self.addChild(gameOver)
+                self.addChild(scoreRestart)
+                self.addChild(self.restartButton)
+        })
     }
     
     
