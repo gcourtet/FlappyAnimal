@@ -19,7 +19,7 @@ struct physicsCategory{
 }
 
 class GameScene: SKScene, SKPhysicsContactDelegate {
-   
+    
     let defaults = UserDefaults.standard
 
     var ground = SKSpriteNode()
@@ -32,6 +32,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     var score = Int()
     let scoreLabel = SKLabelNode()
     
+    var timer = Int()
+    var countdown = Timer()
     
     var star = Int()
     let starCountLabel = SKLabelNode()
@@ -55,6 +57,20 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     var pauseButtonNode = SKSpriteNode()
     
+    var shopButtonNode = SKSpriteNode()
+    var shopCloseButton = SKSpriteNode()
+    var shopBackground = SKSpriteNode()
+    
+    var label = SKLabelNode()
+    
+    var isPlaying = Bool()
+    
+    var canPlay = Bool()
+    
+    var isShopping = Bool()
+    
+    var shopText = SKLabelNode()
+    
     func startGame(){
         self.physicsWorld.contactDelegate = self
         
@@ -69,6 +85,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         } else {
             bestScore = 0
         }
+        
+        canPlay = true
+        isShopping = false
+        isPlaying = false
         
         title = SKLabelNode()
         title.text = "Flappy Animal"
@@ -161,6 +181,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         bestScoreLabel.fontSize = 50
         bestScoreLabel.fontColor = .black
         self.addChild(bestScoreLabel)
+        
+        shopButtonNode = SKSpriteNode(imageNamed: "shopButton")
+        shopButtonNode.setScale(0.75)
+        shopButtonNode.position = CGPoint(x: self.frame.width/2, y: shopButtonNode.size.height/2 + 5)
+        shopButtonNode.zPosition = 10
+        self.addChild(shopButtonNode)
+        
     }
     
     func restartGame(){
@@ -252,14 +279,45 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         for touch in touches{
             let location = touch.location(in: self)
-            
-            if(gameStarted == false){
+            if(isShopping && shopCloseButton.contains(location)){
+                shopCloseButton.removeFromParent()
+                shopText.removeFromParent()
+                shopBackground.run(SKAction.scale(to: 0, duration: 0.1), completion: {() -> () in self.shopBackground.removeFromParent()})
+                isShopping = false
+                canPlay = true
+            } else if(gameStarted == false && shopButtonNode.contains(location) && !isShopping){
+                print("Entering shop")
+                canPlay = false
+                isShopping = true
+                shopBackground = SKSpriteNode(imageNamed: "restartPane")
+                shopBackground.size = CGSize(width: self.frame.width+20, height: self.frame.height+20)
+                shopBackground.position = CGPoint(x: self.frame.width / 2, y: self.frame.height / 2)
+                shopBackground.zPosition = 100
+                self.addChild(shopBackground)
+                
+                shopCloseButton = SKSpriteNode(imageNamed: "closeButton")
+                shopCloseButton.setScale(0.4)
+                shopCloseButton.position = CGPoint(x: self.frame.width - shopCloseButton.size.width/2, y: self.frame.height - shopCloseButton.size.height/2)
+                shopCloseButton.zPosition = 110
+                self.addChild(shopCloseButton)
+                
+                shopText.text = "Available\nsoon"
+                shopText.fontName = "04b19"
+                shopText.zPosition = 110
+                shopText.fontSize = 50
+                shopText.fontColor = .black
+                shopText.position = CGPoint(x: self.frame.width/2, y: self.frame.height/2)
+                self.addChild(shopText)
+        
+            } else if(gameStarted == false && !shopButtonNode.contains(location) && canPlay){
                 
                 gameStarted = true
+                isPlaying = true
                 
                 self.tapToStart.removeFromParent()
                 self.tapTick.removeFromParent()
                 self.title.removeFromParent()
+                self.shopButtonNode.removeFromParent()
                 
                 scoreLabel.position = CGPoint(x: self.frame.width / 2, y: self.frame.height / 2 + self.frame.height / 2.5)
                 scoreLabel.text = "\(score)"
@@ -344,7 +402,18 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 if restartButton.contains(location){
                     restartGame()
                 }
-            } else if(pauseButtonNode.contains(location) && /*scene?.physicsWorld.speed == 0*/ self.isPaused == true) {
+            } else if(pauseButtonNode.contains(location) && /*scene?.physicsWorld.speed == 0*/ self.speed == 0 && isPlaying == false && timer == -1) {
+                timer = 3
+                label.text = "\(timer)"
+                label.fontName = "04b19"
+                label.zPosition = 40
+                label.fontSize = 200
+                label.fontColor = .darkGray
+                label.position = CGPoint(x: self.frame.width/2, y: self.frame.height/2)
+                self.addChild(label)
+                self.pauseButtonNode.removeFromParent()
+                //print(timer)
+                    countdown = Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(self.timeLeft), userInfo: nil, repeats: true)
 //
 //                var counter = 3
 //                let timerLabel = SKLabelNode()
@@ -369,17 +438,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 //                let timerForever = SKAction.repeatForever(timer)
 //                self.run(timerForever, withKey: "timerForever")
 //                timerLabel.removeFromParent()
-                self.isPaused = false
-                //scene?.physicsWorld.speed = 1
-                pauseButtonNode.removeFromParent()
-                pauseButtonNode = SKSpriteNode(imageNamed: "pauseButton")
-                pauseButtonNode.setScale(0.5)
-                pauseButtonNode.position = CGPoint(x: pauseButtonNode.size.width/2 + 10, y: pauseButtonNode.size.height/2 + 5)
-                pauseButtonNode.zPosition = 10
-                self.addChild(pauseButtonNode)
-            } else if(pauseButtonNode.contains(location)) {
-                self.isPaused = true
-                //scene?.physicsWorld.speed = 0
+
+            } else if(pauseButtonNode.contains(location) && isPlaying == true) {
+                timer = -1
+                isPlaying = false
+                self.speed = 0
+                //self.isPaused = true
+                scene?.physicsWorld.speed = 0
                 pauseButtonNode.removeFromParent()
                 pauseButtonNode = SKSpriteNode(imageNamed: "playButton")
                 pauseButtonNode.setScale(0.5)
@@ -544,6 +609,29 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         })
     }
     
+    func timeLeft() {
+        if(timer > 1){
+            timer -= 1
+            label.text = "\(timer)"
+        } else {
+            label.text = ("GO!")
+            countdown.invalidate()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: {
+                self.speed = 1
+                //self.isPaused = false
+                self.scene?.physicsWorld.speed = 1
+                self.pauseButtonNode = SKSpriteNode(imageNamed: "pauseButton")
+                self.pauseButtonNode.setScale(0.5)
+                self.pauseButtonNode.position = CGPoint(x: self.pauseButtonNode.size.width/2 + 10, y: self.pauseButtonNode.size.height/2 + 5)
+                self.pauseButtonNode.zPosition = 10
+                
+                self.addChild(self.pauseButtonNode)
+                self.label.removeFromParent()
+                self.isPlaying = true
+                self.timer = -1
+            })
+        }
+    }
     
     override func update(_ currentTime: CFTimeInterval) {
         /* Called before each frame is rendered */
