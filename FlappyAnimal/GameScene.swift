@@ -21,6 +21,9 @@ struct physicsCategory{
 class GameScene: SKScene, SKPhysicsContactDelegate {
     
     let defaults = UserDefaults.standard
+    
+    var animals = ["rabbit","elephant","giraffe","pig","snake","penguin","panda","parrot","hippo","monkey"]
+    var animalIsPlayable = [true,true,false,false,false,false,false,false,false,false]
 
     var ground = SKSpriteNode()
     var animal = SKSpriteNode()
@@ -71,6 +74,18 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     var shopText = SKLabelNode()
     
+    var shopAnimal = SKSpriteNode()
+    
+    var currentAnimal = Int()
+    
+    var animalInShop = Int()
+    
+    var defaultLabel = SKLabelNode()
+    
+    var rightButton = SKSpriteNode()
+    
+    var leftButton = SKSpriteNode()
+    
     func startGame(){
         self.physicsWorld.contactDelegate = self
         
@@ -86,6 +101,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             bestScore = 0
         }
         
+        if(defaults.value(forKey: "currentAnimal") != nil) {
+            currentAnimal = defaults.value(forKey: "currentAnimal") as! Int
+        } else {
+            currentAnimal = 0
+        }
+        
+        animalInShop = currentAnimal
         canPlay = true
         isShopping = false
         isPlaying = false
@@ -140,11 +162,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         ground.physicsBody?.isDynamic = false
         self.addChild(ground)
         
-        animal = SKSpriteNode(imageNamed: "rabbit")
+        animal = SKSpriteNode(imageNamed: animals[currentAnimal])
         animal.setScale(0.3)
         animal.position = CGPoint(x: self.frame.width/2 - animal.size.width/2, y: self.frame.height/2)
         animal.zPosition = CGFloat(3)
-        let textureAnimal = SKTexture(imageNamed: "rabbit")
+        let textureAnimal = SKTexture(imageNamed: animals[currentAnimal])
         animal.physicsBody = SKPhysicsBody(texture: textureAnimal, alphaThreshold: 0.1, size: animal.size)
         animal.physicsBody?.categoryBitMask = physicsCategory.Animal
         animal.physicsBody?.collisionBitMask = physicsCategory.Ground | physicsCategory.Rock
@@ -279,16 +301,53 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         for touch in touches{
             let location = touch.location(in: self)
-            if(isShopping && shopCloseButton.contains(location)){
-                shopCloseButton.removeFromParent()
+            if(isShopping && shopAnimal.contains(location) && animalIsPlayable[animalInShop]){
+                currentAnimal = animalInShop
+                shopAnimal.removeFromParent()
                 shopText.removeFromParent()
-                shopBackground.run(SKAction.scale(to: 0, duration: 0.1), completion: {() -> () in self.shopBackground.removeFromParent()})
+                defaultLabel.removeFromParent()
+                shopCloseButton.removeFromParent()
+                shopAnimal.removeFromParent()
+                shopBackground.removeFromParent()
+                leftButton.removeFromParent()
+                rightButton.removeFromParent()
+                isShopping = false
+                canPlay = true
+                animal.removeFromParent()
+                animal = SKSpriteNode(imageNamed: animals[currentAnimal])
+                animal.setScale(0.3)
+                animal.position = CGPoint(x: self.frame.width/2 - animal.size.width/2, y: self.frame.height/2)
+                animal.zPosition = CGFloat(3)
+                let textureAnimal = SKTexture(imageNamed: animals[currentAnimal])
+                animal.physicsBody = SKPhysicsBody(texture: textureAnimal, alphaThreshold: 0.1, size: animal.size)
+                animal.physicsBody?.categoryBitMask = physicsCategory.Animal
+                animal.physicsBody?.collisionBitMask = physicsCategory.Ground | physicsCategory.Rock
+                animal.physicsBody?.contactTestBitMask = physicsCategory.Ground | physicsCategory.Rock
+                animal.physicsBody?.affectedByGravity = false
+                animal.physicsBody?.isDynamic = true
+                self.addChild(animal)
+            } else if(isShopping && leftButton.contains(location) && animalInShop != 0) {
+                animalInShop -= 1
+                updateShop()
+            } else if(isShopping && rightButton.contains(location) && animalInShop != animals.count - 1) {
+                animalInShop += 1
+                updateShop()
+            } else if(isShopping && shopCloseButton.contains(location)){
+                shopAnimal.removeFromParent()
+                shopText.removeFromParent()
+                defaultLabel.removeFromParent()
+                shopCloseButton.removeFromParent()
+                shopAnimal.removeFromParent()
+                shopBackground.removeFromParent()
+                leftButton.removeFromParent()
+                rightButton.removeFromParent()
                 isShopping = false
                 canPlay = true
             } else if(gameStarted == false && shopButtonNode.contains(location) && !isShopping){
-                print("Entering shop")
+                
                 canPlay = false
                 isShopping = true
+                
                 shopBackground = SKSpriteNode(imageNamed: "restartPane")
                 shopBackground.size = CGSize(width: self.frame.width+20, height: self.frame.height+20)
                 shopBackground.position = CGPoint(x: self.frame.width / 2, y: self.frame.height / 2)
@@ -301,12 +360,61 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 shopCloseButton.zPosition = 110
                 self.addChild(shopCloseButton)
                 
-                shopText.text = "Available\nsoon"
+                shopAnimal = SKSpriteNode(imageNamed: animals[animalInShop])
+                shopAnimal.setScale(2)
+                shopAnimal.position = CGPoint(x: self.frame.width/2, y: self.frame.height/2)
+                shopAnimal.zPosition = 110
+                self.addChild(shopAnimal)
+                
+                if(!animalIsPlayable[animalInShop]){
+                    defaultLabel.text = "Tap to adopt"
+                    defaultLabel.fontName = "04b19"
+                    defaultLabel.zPosition = 110
+                    defaultLabel.fontSize = 50
+                    defaultLabel.fontColor = .black
+                    defaultLabel.position = CGPoint(x: self.frame.width/2, y: self.frame.height/7)
+                    self.addChild(defaultLabel)
+                } else {
+                    defaultLabel.text = "Tap to play"
+                    defaultLabel.fontName = "04b19"
+                    defaultLabel.zPosition = 110
+                    defaultLabel.fontSize = 50
+                    defaultLabel.fontColor = .black
+                    defaultLabel.position = CGPoint(x: self.frame.width/2, y: self.frame.height/7)
+                    self.addChild(defaultLabel)
+                }
+                
+                
+                rightButton = SKSpriteNode(imageNamed: "rightButton")
+                rightButton.setScale(0.75)
+                rightButton.position = CGPoint(x: 4*self.frame.width/5, y: self.frame.height/10)
+                rightButton.zPosition = 110
+                
+                leftButton = SKSpriteNode(imageNamed: "leftButton")
+                leftButton.setScale(0.75)
+                leftButton.position = CGPoint(x: self.frame.width/5, y: self.frame.height/10)
+                leftButton.zPosition = 110
+                
+                
+                switch animalInShop {
+                case 0:
+                    self.addChild(rightButton)
+                    break
+                case animals.count - 1:
+                    self.addChild(leftButton)
+                    break
+                default:
+                    self.addChild(rightButton)
+                    self.addChild(leftButton)
+                    break
+                }
+                
+                shopText.text = "Adopt animals"
                 shopText.fontName = "04b19"
                 shopText.zPosition = 110
-                shopText.fontSize = 50
-                shopText.fontColor = .black
-                shopText.position = CGPoint(x: self.frame.width/2, y: self.frame.height/2)
+                shopText.fontSize = 100
+                shopText.fontColor = .brown
+                shopText.position = CGPoint(x: self.frame.width/2, y: 8*self.frame.height/10)
                 self.addChild(shopText)
         
             } else if(gameStarted == false && !shopButtonNode.contains(location) && canPlay){
@@ -394,10 +502,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 moveAndRemoveStar = SKAction.sequence([moveStar, removeStar])
                 
                 animal.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
-                animal.physicsBody?.applyImpulse(CGVector(dx: 0, dy: animal.size.height*1.25))
+                animal.physicsBody?.applyImpulse(CGVector(dx: 0, dy: max(animal.size.height, animal.size.width)*1.25))
             } else if(!pauseButtonNode.contains(location) && died == false && gameStarted == true && animal.position.y < self.frame.height){
                 animal.physicsBody?.velocity = CGVector(dx: 0, dy: 0)
-                animal.physicsBody?.applyImpulse(CGVector(dx: 0, dy: animal.size.height*1.25))
+                animal.physicsBody?.applyImpulse(CGVector(dx: 0, dy: max(animal.size.height, animal.size.width)*1.25))
             } else if (died == true) {
                 if restartButton.contains(location){
                     restartGame()
@@ -635,5 +743,34 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     override func update(_ currentTime: CFTimeInterval) {
         /* Called before each frame is rendered */
+    }
+    
+    func updateShop(){
+        shopAnimal.removeFromParent()
+        shopAnimal = SKSpriteNode(imageNamed: animals[animalInShop])
+        shopAnimal.setScale(2)
+        shopAnimal.position = CGPoint(x: self.frame.width/2, y: self.frame.height/2)
+        shopAnimal.zPosition = 110
+        self.addChild(shopAnimal)
+        if(!animalIsPlayable[animalInShop]){
+            defaultLabel.text = "Tap to adopt"
+        } else {
+            defaultLabel.text = "Tap to play"
+        }
+        leftButton.removeFromParent()
+        rightButton.removeFromParent()
+        switch animalInShop {
+        case 0:
+            self.addChild(rightButton)
+            break
+        case animals.count - 1:
+            self.addChild(leftButton)
+            break
+        default:
+            self.addChild(rightButton)
+            self.addChild(leftButton)
+            break
+        }
+        
     }
 }
