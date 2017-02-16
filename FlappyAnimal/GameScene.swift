@@ -23,7 +23,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     let defaults = UserDefaults.standard
     
     var animals = ["rabbit","elephant","giraffe","pig","snake","penguin","panda","parrot","hippo","monkey"]
-    var animalIsPlayable = [true,true,false,false,false,false,false,false,false,false]
+    var animalIsPlayable : [Bool] = []
 
     var ground = SKSpriteNode()
     var animal = SKSpriteNode()
@@ -86,6 +86,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     var leftButton = SKSpriteNode()
     
+    var costLabel = SKLabelNode()
+    
+    var costStar = SKSpriteNode()
+    
+    var cost = Int()
+    
     func startGame(){
         self.physicsWorld.contactDelegate = self
         
@@ -106,6 +112,14 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         } else {
             currentAnimal = 0
         }
+        
+        if(defaults.value(forKey: "animalIsPlayable") != nil) {
+            animalIsPlayable = defaults.value(forKey: "animalIsPlayable") as! [Bool]
+        } else {
+            animalIsPlayable = [true,false,false,false,false,false,false,false,false,false]
+        }
+        
+        updateCost()
         
         animalInShop = currentAnimal
         canPlay = true
@@ -301,7 +315,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         for touch in touches{
             let location = touch.location(in: self)
-            if(isShopping && shopAnimal.contains(location) && animalIsPlayable[animalInShop]){
+            if(isShopping && shopAnimal.contains(location) && !animalIsPlayable[animalInShop] && star >= 200){
+                star -= 200
+                starCountLabel.text = "\(star)"
+                animalIsPlayable[animalInShop] = !animalIsPlayable[animalInShop]
+                updateCost()
+                updateShop()
+                costStar.removeFromParent()
+                costLabel.removeFromParent()
+                defaults.set(animalIsPlayable, forKey: "animalIsPlayable")
+                defaults.set(star, forKey: "star")
+            } else if(isShopping && shopAnimal.contains(location) && animalIsPlayable[animalInShop]){
                 currentAnimal = animalInShop
                 shopAnimal.removeFromParent()
                 shopText.removeFromParent()
@@ -326,10 +350,15 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 animal.physicsBody?.affectedByGravity = false
                 animal.physicsBody?.isDynamic = true
                 self.addChild(animal)
+                defaults.set(currentAnimal, forKey: "currentAnimal")
             } else if(isShopping && leftButton.contains(location) && animalInShop != 0) {
+                costLabel.removeFromParent()
+                costStar.removeFromParent()
                 animalInShop -= 1
                 updateShop()
             } else if(isShopping && rightButton.contains(location) && animalInShop != animals.count - 1) {
+                costLabel.removeFromParent()
+                costStar.removeFromParent()
                 animalInShop += 1
                 updateShop()
             } else if(isShopping && shopCloseButton.contains(location)){
@@ -341,6 +370,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 shopBackground.removeFromParent()
                 leftButton.removeFromParent()
                 rightButton.removeFromParent()
+                costStar.removeFromParent()
+                costLabel.removeFromParent()
+                animalInShop = currentAnimal
                 isShopping = false
                 canPlay = true
             } else if(gameStarted == false && shopButtonNode.contains(location) && !isShopping){
@@ -566,11 +598,15 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     func didBegin(_ contact: SKPhysicsContact) {
         let firstBody = contact.bodyA
         let secondBody = contact.bodyB
-        if firstBody.categoryBitMask == physicsCategory.Score && secondBody.categoryBitMask == physicsCategory.Animal {
+        if firstBody.categoryBitMask == physicsCategory.Score && secondBody.categoryBitMask == physicsCategory.Animal && died == false {
             firstBody.categoryBitMask = 0
             firstBody.node?.removeFromParent()
             score += 1
             scoreLabel.text = "\(score)"
+            if(score > bestScore) {
+                bestScore = score
+                bestScoreLabel.text = "\(bestScore)"
+            }
             /* let distance = CGFloat(self.frame.width + 864) //864 = 2*rock width with this scale
             let moveRocks = SKAction.moveBy(x: -distance, y: 0, duration: TimeInterval((distance - CGFloat(score * 50)) * 0.01))
             let removeRocks = SKAction.removeFromParent()
@@ -580,7 +616,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             let removeStar = SKAction.removeFromParent()
             moveAndRemoveStar = SKAction.sequence([moveStar, removeStar]) */
 
-        } else if firstBody.categoryBitMask == physicsCategory.Animal && secondBody.categoryBitMask == physicsCategory.Score {
+        } else if firstBody.categoryBitMask == physicsCategory.Animal && secondBody.categoryBitMask == physicsCategory.Score && died == false {
             secondBody.categoryBitMask = 0
             secondBody.node?.removeFromParent()
             score += 1
@@ -590,17 +626,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 bestScoreLabel.text = "\(bestScore)"
             }
 
-        } else if firstBody.categoryBitMask == physicsCategory.Star && secondBody.categoryBitMask == physicsCategory.Animal {
+        } else if firstBody.categoryBitMask == physicsCategory.Star && secondBody.categoryBitMask == physicsCategory.Animal && died == false {
             firstBody.categoryBitMask = 0
             firstBody.node?.removeFromParent()
             star += 1
             starCountLabel.text = "\(star)"
-            if(score > bestScore) {
-                bestScore = score
-                bestScoreLabel.text = "\(bestScore)"
-            }
             
-        } else if firstBody.categoryBitMask == physicsCategory.Animal && secondBody.categoryBitMask == physicsCategory.Star {
+        } else if firstBody.categoryBitMask == physicsCategory.Animal && secondBody.categoryBitMask == physicsCategory.Star && died == false {
             secondBody.categoryBitMask = 0
             secondBody.node?.removeFromParent()
             star += 1
@@ -754,6 +786,25 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         self.addChild(shopAnimal)
         if(!animalIsPlayable[animalInShop]){
             defaultLabel.text = "Tap to adopt"
+            
+            costLabel.position = CGPoint(x: self.frame.width/2 - 60, y: self.frame.height / 12)
+            costLabel.text = "\(cost)"
+            costLabel.horizontalAlignmentMode = .left
+            costLabel.fontName = "04b19"
+            costLabel.zPosition = 110
+            costLabel.fontSize = 50
+            if(self.star >= 200){
+                costLabel.fontColor = .black
+            } else {
+                costLabel.fontColor = .red
+            }
+            self.addChild(costLabel)
+            
+            costStar = SKSpriteNode(imageNamed: "starGold")
+            costStar.position = CGPoint(x: self.frame.width/2 + 10 + costStar.frame.width, y: self.frame.height / 12 + costStar.frame.height/2)
+            costStar.zPosition = 110
+            self.addChild(costStar)
+            
         } else {
             defaultLabel.text = "Tap to play"
         }
@@ -772,5 +823,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             break
         }
         
+    }
+    
+    func updateCost() {
+        var x = 0
+        
+        for i in 0 ..< animalIsPlayable.count {
+            if(animalIsPlayable[i] == true) {
+                x += 1
+            }
+        }
+        
+        cost = x * 100
     }
 }
