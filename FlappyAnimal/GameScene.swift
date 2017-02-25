@@ -315,8 +315,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         for touch in touches{
             let location = touch.location(in: self)
-            if(isShopping && shopAnimal.contains(location) && !animalIsPlayable[animalInShop] && star >= 200){
-                star -= 200
+            if(isShopping && shopAnimal.contains(location) && !animalIsPlayable[animalInShop] && star >= cost){
+                star -= cost
                 starCountLabel.text = "\(star)"
                 animalIsPlayable[animalInShop] = !animalIsPlayable[animalInShop]
                 updateCost()
