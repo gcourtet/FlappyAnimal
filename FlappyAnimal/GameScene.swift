@@ -133,7 +133,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         title.fontSize = 100
         title.fontColor = .red
         title.position = CGPoint(x: self.frame.width/2, y: 2 * self.frame.height/3)
-        title.zRotation = CGFloat(M_PI/8)
+        title.zRotation = CGFloat(Double.pi/8)
         self.addChild(title)
         
         tapToStart.text = "Tap to start"
@@ -253,7 +253,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         topRock.position = CGPoint(x: self.frame.width + 216, y: self.frame.height/2 + 600)
         topRock.setScale(4)
-        topRock.zRotation = CGFloat(M_PI)
+        topRock.zRotation = CGFloat(Double.pi)
         topRock.zPosition = CGFloat(4)
         let texture = SKTexture(imageNamed: "rockGrass")
         topRock.physicsBody = SKPhysicsBody(texture: texture, alphaThreshold: 0.1, size: topRock.size)
@@ -284,7 +284,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         scoreNode.physicsBody?.contactTestBitMask = physicsCategory.Animal
         rockPair.addChild(scoreNode)
         
-        let randomHeight = CGFloat(Int(arc4random_uniform(UInt32(400)))) //400 is about less than 0.5 of rock heigth with this scale
+        let randomHeight = CGFloat(Int(arc4random_uniform(UInt32(400))))
         let pairHeightRandom = Int(arc4random_uniform(2))
         switch pairHeightRandom {
         case 0:
@@ -491,15 +491,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 
                 let spawnDelayStarForever = SKAction.repeatForever(spawnDelayStar)
                 
-                //self.run(spawnDelayScoreForever)
-                
                 let delay = SKAction.wait(forDuration: 3.5)
                 
                 let spawnDelay = SKAction.sequence([spawn, delay])
                 
                 let spawnDelayForever = SKAction.repeatForever(spawnDelay)
                 
-                //self.run(spawnDelayForever)
                 let testContactAction = SKAction.run {
                     self.enumerateChildNodes(withName: "rockPair", using: ({
                         (rock, err) in
@@ -524,7 +521,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 let allAction = SKAction.group([spawnDelayStarForever, spawnDelayForever, testDelaySequenceForever])
                 self.run(allAction)
                 
-                let distance = CGFloat(self.frame.width + 864) //864 = 2*rock width with this scale
+                let distance = CGFloat(self.frame.width + 864)
                 let moveRocks = SKAction.moveBy(x: -distance, y: 0, duration: TimeInterval(distance * 0.01))
                 let removeRocks = SKAction.removeFromParent()
                 moveAndRemove = SKAction.sequence([moveRocks, removeRocks])
@@ -552,32 +549,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 label.position = CGPoint(x: self.frame.width/2, y: self.frame.height/2)
                 self.addChild(label)
                 self.pauseButtonNode.removeFromParent()
-                //print(timer)
                     countdown = Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(self.timeLeft), userInfo: nil, repeats: true)
-//
-//                var counter = 3
-//                let timerLabel = SKLabelNode()
-//                timerLabel.position = CGPoint(x: self.frame.width/2, y: self.frame.height/2)
-//                timerLabel.fontName = "04b19"
-//                timerLabel.text = "\(counter)"
-//                timerLabel.zPosition = 50
-//                timerLabel.fontSize = 150
-//                timerLabel.color = .red
-//                self.addChild(timerLabel)
-//                print("yp")
-//                let waitAction = SKAction.wait(forDuration: 1.0)
-//                let timerAction = SKAction.run({
-//                    if counter > 0 {
-//                        timerLabel.text = "\(counter)"
-//                        counter -= 1
-//                    } else {
-//                        self.removeAction(forKey: "timerForever")
-//                    }
-//                })
-//                let timer = SKAction.sequence([waitAction, timerAction])
-//                let timerForever = SKAction.repeatForever(timer)
-//                self.run(timerForever, withKey: "timerForever")
-//                timerLabel.removeFromParent()
 
             } else if(pauseButtonNode.contains(location) && isPlaying == true) {
                 timer = -1
@@ -607,14 +579,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 bestScore = score
                 bestScoreLabel.text = "\(bestScore)"
             }
-            /* let distance = CGFloat(self.frame.width + 864) //864 = 2*rock width with this scale
-            let moveRocks = SKAction.moveBy(x: -distance, y: 0, duration: TimeInterval((distance - CGFloat(score * 50)) * 0.01))
-            let removeRocks = SKAction.removeFromParent()
-            moveAndRemove = SKAction.sequence([moveRocks, removeRocks])
-            
-            let moveStar = SKAction.moveBy(x: -distance, y: 0, duration: TimeInterval((distance - CGFloat(score * 50)) * 0.01))
-            let removeStar = SKAction.removeFromParent()
-            moveAndRemoveStar = SKAction.sequence([moveStar, removeStar]) */
 
         } else if firstBody.categoryBitMask == physicsCategory.Animal && secondBody.categoryBitMask == physicsCategory.Score && died == false {
             secondBody.categoryBitMask = 0
@@ -758,7 +722,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             countdown.invalidate()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: {
                 self.speed = 1
-                //self.isPaused = false
                 self.scene?.physicsWorld.speed = 1
                 self.pauseButtonNode = SKSpriteNode(imageNamed: "pauseButton")
                 self.pauseButtonNode.setScale(0.5)
@@ -793,7 +756,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             costLabel.fontName = "04b19"
             costLabel.zPosition = 110
             costLabel.fontSize = 50
-            if(self.star >= 200){
+            if(self.star >= cost){
                 costLabel.fontColor = .black
             } else {
                 costLabel.fontColor = .red
